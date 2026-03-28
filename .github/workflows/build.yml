@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false  # Ensure one failure doesn't cancel other jobs
       matrix:
-        target: [standard_gcy, standard_hjy, standard_wwj, standard_yx]
+        target: [standard_gcy, standard_hjy, standard_wwj, standard_yx, standard_zzy]
 
     steps:
     - uses: actions/checkout@v4

@@ -40,6 +40,7 @@ set(targets
     standard_hjy 
     standard_wwj 
     standard_yx
+    standard_zzy
 )
 
 foreach(target ${targets})
