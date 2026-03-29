@@ -18,6 +18,7 @@
 #include "tools/logger.hpp"
 #include "tools/plotter.hpp"
 #include "tools/recorder.hpp"
+#include "tools/math_tools.hpp"
 
 const std::string keys = 
     "{help h usage ? | }"
@@ -37,7 +38,6 @@ int main(int argc, char * argv[]) {
     tools::Plotter plotter;
     tools::Recorder recorder;
     
-    io::CBoard cboard(config_path);
     io::Camera camera(config_path);
     io::Gimbal gimbal(config_path);
     
@@ -51,13 +51,14 @@ int main(int argc, char * argv[]) {
     Eigen::Quaterniond q;
     std::chrono::steady_clock::time_point t;
     
-    auto mode = io::Mode::idle;
-    auto last_mode = io::Mode::idle;
+    auto mode = io::GimbalMode::IDLE;
+    auto last_mode = io::GimbalMode::IDLE;
     
     while(!exiter.exit()) {
         camera.read(img, t);
-        q = cboard.imu_at(t);
-        mode = cboard.mode;
+        q = gimbal.q(t);
+        mode = gimbal.mode();
+
         if (mode != last_mode) last_mode = mode;
         
         solver.set_R_gimbal2world(q);
@@ -66,7 +67,8 @@ int main(int argc, char * argv[]) {
         
         auto armors = detector.detect(img);
         auto targets = tracker.track(armors, t);
-        auto cmd = aimer.aim(targets, t, cboard.bullet_speed);
+        auto cmd = aimer.aim(targets, t, 15);
+        cmd.shoot = false;
         gimbal.send(cmd);
     }    
     return 0;

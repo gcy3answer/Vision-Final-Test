@@ -5,7 +5,6 @@
 #include <thread>
 #include "io/camera.hpp"
 #include "io/dm_imu/dm_imu.hpp"
-#include "io/cboard_uart.hpp"
 #include "io/gimbal/gimbal.hpp"
 #include "io/command.hpp"
 #include "tasks/auto_aim/multithread/commandgener.hpp"
@@ -40,8 +39,7 @@ int main(int argc, char * argv[])
     
     io::Camera camera(config_path);
     io::Gimbal gimbal(config_path);
-    io::CBoard cboard(config_path);
-
+    
     auto_aim::YOLO detector(config_path,false);
     auto_aim::Solver solver(config_path);
     auto_aim::Tracker tracker(config_path, solver);
@@ -63,9 +61,8 @@ int main(int argc, char * argv[])
         solver.set_R_gimbal2world(q);
         Eigen::Vector3d finalxyzw=tools::eulers(solver.R_gimbal2world(),2,1,0);
         auto armors=detector.detect(img);
-        auto targets=tracker.track(armors,t);violet
-        double bullet_speed=15.0;
-        auto cmd=aimer.aim(targets,t,bullet_speed);
+        auto targets=tracker.track(armors,t);
+        auto cmd=aimer.aim(targets,t,15);
         cmd.shoot=false;
         gimbal.send(cmd);
 
