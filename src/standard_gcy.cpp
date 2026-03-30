@@ -7,7 +7,7 @@
 
 #include "io/camera.hpp"
 #include "io/dm_imu/dm_imu.hpp"
-#include "io/cboard_uart.hpp"
+
 #include "io/gimbal/gimbal.hpp"
 #include "io/command.hpp"
 
@@ -44,17 +44,19 @@ int main(int argc, char * argv[]) {
 
   tools::Exiter exiter;
   tools::Plotter plotter;
+  tools::Recorder recorder;
 
   io::Gimbal gimbal(config_path);
   
   io::Camera camera(config_path);  
-  io::CBoardUART cboard(config_path);
   
-  auto_aim::YOLO yolo(config_path, true);
+  
+  auto_aim::YOLO yolo(config_path, false);
   auto_aim::Solver solver(config_path);
   auto_aim::Tracker tracker(config_path, solver);
   auto_aim::Shooter shooter(config_path);
   auto_aim::Aimer aimer(config_path);
+  auto_aim::Shooter shooter(config_path);
 
 
   
@@ -63,24 +65,27 @@ int main(int argc, char * argv[]) {
   std::chrono::steady_clock::time_point t;
   
 
-  auto mode = io::Mode::idle;   
-  auto last_mode = io::Mode::idle;  
+  auto mode = io::GimbalMode::IDLE;   
+  auto last_mode = io::GimbalMode::IDLE;  
+  
 
   while(!exiter.exit()){
     camera.read(img,t);
-    q = cboard.imu_at(t - 1ms);
-    mode = cboard.mode;
+    q=gimbal.q(t);
+    mode=gimbal.mode();
+
+    if(mode!=last_mode) last_mode = mode;
 
     
     solver.set_R_gimbal2world(q);
 
-    Eigen::Vector3d final_xyz = tools::eulers(solver.R_gimbal2world(), 2, 1, 0);
+    Eigen::Vector3d final_xyz = tools::eulers(solver.R_gimbal2world(), 0, 1, 2);
 
     auto armors = yolo.detect(img);
 
     auto targets = tracker.track(armors, t);
 
-    auto cmd = aimer.aim(targets, t, cboard.bullet_speed);
+    auto cmd = aimer.aim(targets, t, 15.0);
 
     gimbal.send(cmd);
 
